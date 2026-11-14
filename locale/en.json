@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Session vault",
+    "description": "Session locks for the DSH UI plus optional on-disk encryption of session logs; also exports password-protected .enc archives.",
+    "detail": "docs/DETAIL.md"
+  }
+}
