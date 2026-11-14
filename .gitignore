@@ -1,0 +1,13 @@
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+
+# 运行时状态与诊断（含口令哈希、会话登记，绝不入库）
+_diagnostics.json
+_fsdebug.log
+_fspatch.log
+session-vault.log
+
+# 一次性探针 / 分析笔记
+API-NOTES.md

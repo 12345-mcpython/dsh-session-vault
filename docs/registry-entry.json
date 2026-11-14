@@ -1,0 +1,13 @@
+{
+  "id": "dsh-session-vault",
+  "name": "DSH Session Vault",
+  "description": "给 DSH 的会话上锁：界面锁只挡 UI 层，磁盘锁把会话日志换成 WALLBK 密文，每条会话独立口令。",
+  "category": "security",
+  "tags": ["隐私", "加密", "锁", "会话", "磁盘"],
+  "verified": ["0.2.2-rc.2", "0.2.2-rc.3"],
+  "source": "github",
+  "github": "12345-mcpython/dsh-session-vault",
+  "homepage": "https://github.com/12345-mcpython/dsh-session-vault",
+  "icon": "https://raw.githubusercontent.com/12345-mcpython/dsh-session-vault/main/icon.svg",
+  "license": "GPL-3.0-or-later"
+}
