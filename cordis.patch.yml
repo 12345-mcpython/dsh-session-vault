@@ -1,0 +1,10 @@
+- insert:
+    - id: dsh-session-vault
+      name: '@local/dsh-session-vault'
+      config:
+        # 导出加密备份（session_vault_encrypt 工具）的落点与保留份数
+        dest: 'D:\backup\chat'
+        keep: 20
+        # 首次安装时写进 state.json 的默认策略；之后以 GUI 里的设置为准
+        autoLockMinutes: 10
+        diskLock: true

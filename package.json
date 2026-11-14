@@ -1,0 +1,51 @@
+{
+  "name": "@local/dsh-session-vault",
+  "version": "2.0.0",
+  "license": "GPL-3.0-or-later",
+  "description": "给 DSH 的会话上锁：界面锁只挡 UI 层，磁盘锁把日志换成 WALLBK 密文；每条会话独立口令，口令只存校验值不存密钥",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "session-lock",
+    "encryption",
+    "aes-256-gcm",
+    "scrypt",
+    "privacy",
+    "vault"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "backend-patch.js",
+    "lib",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "docs",
+    "test",
+    "icon.svg"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-workspace",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-session",
+        "@deepseek-ai/dsh-client-ui-context-menu"
+      ]
+    }
+  }
+}
