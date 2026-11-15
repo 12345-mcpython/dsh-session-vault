@@ -549,6 +549,10 @@ window.__ModuleLoader__.load({
         if (!ownRecord && typed !== typed2) { setError('两次输入不一致'); return }
         setBusy(true)
         setError('')
+        // 必须显式声明：不声明的话 `lockOk = true` 在严格模式下抛
+        // ReferenceError，被 catch 吞掉之后 finally 里的 reload 也读不到它，
+        // 自动重载就永远不会发生。
+        let lockOk = false
         try {
           await api('lock', {
             sessionId,
@@ -556,23 +560,25 @@ window.__ModuleLoader__.load({
             title,
             disk: diskRef.current === true,
           })
-          await store.refresh()
-          store.closeDialog()
-          // 上锁后整页重载。
-          //
-          // 不重载的话这条会话的正文还在浏览器内存和 DOM 里，只是被 CSS 藏起来了 ——
-          // 任何人打开 DevTools 关掉那条 visibility 规则就能看到全文。重载之后客户端
-          // 重新请求历史，后端拒绝已锁会话，内存里就真的没数据了。
-          //
-          // 代价是一秒左右的白屏。这是不做内核驱动就能让界面锁真正挡住 DevTools 的唯一办法。
-          const toastText = ownRecord ? '已上锁 · 沿用这条会话自己的口令' : '已上锁 · 这条会话用自己的口令'
+          // 上锁成功：先把提示存好（跨重载），再关窗。
+          const toastText = ownRecord
+            ? '已上锁 · 沿用这条会话自己的口令'
+            : '已上锁 · 这条会话用自己的口令'
           rememberToastAcrossReload(toastText)
-          store.showToast(toastText)
-          setTimeout(() => { try { window.location.reload() } catch { /* ignore */ } }, 400)
+          try { store.showToast(toastText) } catch { /* ignore */ }
+          try { await store.refresh() } catch { /* ignore */ }
+          try { store.closeDialog() } catch { /* ignore */ }
+          lockOk = true
         } catch (err) {
           setError(String(err?.message || err))
         } finally {
           setBusy(false)
+          // **重载放在 finally 里**：前面任何一步抛错都不能阻断它。
+          //
+          // 不重载的话这条会话的正文还在浏览器内存和 DOM 里，只是被 CSS 藏起来了 ——
+          // 打开 DevTools 关掉那条规则就能看到全文。重载之后客户端重新请求历史，
+          // Host 三层缓存都清过、磁盘上是密文，内存里就真的没数据了。
+          if (lockOk) setTimeout(() => { try { window.location.reload() } catch { /* ignore */ } }, 400)
         }
       }
 

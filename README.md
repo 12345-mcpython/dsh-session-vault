@@ -174,6 +174,36 @@ Node 在 ESM 里导入 CJS 的具名导出时复制的是快照，所以改 `fs.
 锁定时 `readFirstZstdLine` 返回 `undefined`，`list()` 会跳过这条会话。为了让它仍出现在
 侧栏，磁盘锁会在同目录写一个 `.header` 文件（见「挡不住的」）。
 
+### 上锁为什么要卸载三层缓存
+
+**钩子是最后一道，不是第一道。** DSH 读一条会话时，`sessionQuery.observeSession()` 按这个顺序找：
+
+```js
+// dsh-session-query/lib/index.js: SessionObservationReader.acquire()
+const live = this.ctx.sessions.get(sessionId);        // 1. SessionRegistry
+if (live !== void 0) return this.live(live, ...);     //    命中就返回，不碰磁盘
+
+let entry = this.cachedEntry(persistence.identity, sessionId, snapshot.revision);  // 2. 准备缓存
+if (entry === void 0) {
+  const loaded = await this.loadSource(persistence, sessionId, signal);  // 3. 磁盘 —— 钩子在这
+  session = this.ctx.sessions.prepare(sessionId, { seed, ... });        //    读完又塞回第 1 层
+```
+
+所以上锁时必须把三层都清掉，否则客户端刷新后从内存直接拿到正文，`decodeStoredLog` 根本不会被调用：
+
+| 层 | 持有者 | 清理方式 |
+|---|---|---|
+| Agent 层 | `ctx.agents.store` | `detachEntered(entry)` |
+| Session 层 | `ctx.sessions.store` | `detachEntered(entry)` |
+| 查询缓存 | `sessionQuery._observations.cache` | `cache.delete(id)` |
+
+这三个都是**内部方法**，不是公开 API。取不到就跳过并记日志，不让上锁本身失败。
+每次卸载的结果写进 `_diagnostics.json` 的 `lastUnload` 字段（含每层的 `storeKeys` / `cacheKeys`），
+DSH 升级后如果某层改了结构，从那里能一眼看出来。
+
+清完之后浏览器那份还在内存和 DOM 里，所以上锁/收回授权还会触发一次**整页重载**。
+重载之后客户端重新请求，三层都没有、磁盘上是密文 → 拿不到数据。
+
 ## HTTP 接口
 
 挂在 `/api/session.vault`，走宿主的 `connection.fetch` 注册，继承浏览器的签名 cookie 栅栏。
