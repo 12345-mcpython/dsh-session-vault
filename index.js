@@ -622,6 +622,8 @@ export function apply(ctx, config) {
   }
 
   /** 把「到底装上了什么」写成文件，Desktop 的 console 看不到时靠它排查。 */
+  let lastUnload = null
+
   const writeDiagnostics = (extra) => {
     const snapshot = getState()
     // 探测 AgentRegistry：宿主内存里有哪些会话、能不能卸掉。
@@ -659,6 +661,7 @@ export function apply(ctx, config) {
       backend: backendInfo,
       disk: { available: disk.available, sweptTempFiles: sweptTemps, ...extra },
       agents: agentsProbe,
+      lastUnload,
       sessionsRoot: sessionsRoot(),
       policy: snapshot.policy,
       locks: Object.entries(snapshot.locks).map(([id, row]) => ({
@@ -739,6 +742,11 @@ export function apply(ctx, config) {
     // 卸会话时按名字取服务：agents / sessions / sessionQuery 三层都要清。
     getService: (name) => {
       try { return ctx.get(name) ?? null } catch { return null }
+    },
+    // 每次卸载都记一份到诊断文件：失败时能看出是哪一层没清掉。
+    onUnload: (report) => {
+      lastUnload = report
+      try { writeDiagnostics({}) } catch { /* ignore */ }
     },
   })
 
