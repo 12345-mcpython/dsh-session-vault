@@ -736,6 +736,10 @@ export function apply(ctx, config) {
     getAgents: () => {
       try { return ctx.get('agents') ?? null } catch { return null }
     },
+    // 卸会话时按名字取服务：agents / sessions / sessionQuery 三层都要清。
+    getService: (name) => {
+      try { return ctx.get(name) ?? null } catch { return null }
+    },
   })
 
   const registerRoutes = () => {
