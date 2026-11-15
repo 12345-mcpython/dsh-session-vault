@@ -11,3 +11,6 @@ session-vault.log
 
 # 一次性探针 / 分析笔记
 API-NOTES.md
+
+# 本地 GitHub token，绝不入库
+.github-token

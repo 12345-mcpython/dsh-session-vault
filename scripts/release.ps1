@@ -21,6 +21,7 @@
 param(
   [string]$Version,
   [string]$Repo,
+  [string]$TokenFile,
   [switch]$DryRun,
   [switch]$Prerelease
 )
@@ -169,7 +170,25 @@ if ($DryRun) {
 }
 
 $gh = Get-Command gh -ErrorAction SilentlyContinue
-$token = $env:GITHUB_TOKEN
+
+# token 来源按优先级：-TokenFile > $env:GITHUB_TOKEN > 仓库根目录的 .github-token
+# 文件里的内容会 trim（处理尾部换行和 BOM），空文件视为没有。
+$token = $null
+if ($TokenFile) {
+  if (-not (Test-Path $TokenFile)) { Fail "token 文件不存在：$TokenFile" }
+  $token = (Get-Content $TokenFile -Raw -ErrorAction Stop).Trim()
+  if (-not $token) { Fail "token 文件是空的：$TokenFile" }
+  Info "token 来自文件：$TokenFile"
+} elseif ($env:GITHUB_TOKEN) {
+  $token = $env:GITHUB_TOKEN.Trim()
+  Info "token 来自环境变量 GITHUB_TOKEN"
+} else {
+  $defaultTokenFile = Join-Path $root '.github-token'
+  if (Test-Path $defaultTokenFile) {
+    $token = (Get-Content $defaultTokenFile -Raw -ErrorAction Stop).Trim()
+    if ($token) { Info "token 来自默认文件：$defaultTokenFile" }
+  }
+}
 
 if ($gh) {
   Info "用 gh CLI 建 release..."
