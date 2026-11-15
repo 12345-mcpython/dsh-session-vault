@@ -558,7 +558,17 @@ window.__ModuleLoader__.load({
           })
           await store.refresh()
           store.closeDialog()
-          store.showToast(ownRecord ? '已上锁 · 沿用这条会话自己的口令' : '已上锁 · 这条会话用自己的口令')
+          // 上锁后整页重载。
+          //
+          // 不重载的话这条会话的正文还在浏览器内存和 DOM 里，只是被 CSS 藏起来了 ——
+          // 任何人打开 DevTools 关掉那条 visibility 规则就能看到全文。重载之后客户端
+          // 重新请求历史，后端拒绝已锁会话，内存里就真的没数据了。
+          //
+          // 代价是一秒左右的白屏。这是不做内核驱动就能让界面锁真正挡住 DevTools 的唯一办法。
+          const toastText = ownRecord ? '已上锁 · 沿用这条会话自己的口令' : '已上锁 · 这条会话用自己的口令'
+          rememberToastAcrossReload(toastText)
+          store.showToast(toastText)
+          setTimeout(() => { try { window.location.reload() } catch { /* ignore */ } }, 400)
         } catch (err) {
           setError(String(err?.message || err))
         } finally {
