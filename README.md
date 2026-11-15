@@ -176,6 +176,51 @@ Node 在 ESM 里导入 CJS 的具名导出时复制的是快照，所以改 `fs.
 
 ### 上锁为什么要卸载三层缓存
 
+### 读路径的两道门：`open` 和 `decodeStoredLog`
+
+**`decodeStoredLog` 不是唯一入口。** 实测下来客户端读正文走的是：
+
+```
+persistence.open(id, "read")  →  handle
+                              →  handle.read(...)  ← 自己读字节，绕过 decodeStoredLog
+```
+
+所以上锁时必须把 **`open` 也拦住**。现在的规则是：
+
+```js
+instanceProto.open = async function (id, access, options) {
+  const locked = isDiskLocked(id)
+  const hasKey = Boolean(grants.keyFor(id))
+  if (locked && !hasKey) throw lockedError(id)   // 读和写都拒绝
+  return saved.open.call(this, id, access, options)
+}
+```
+
+不误伤的两条路径：
+
+- `list()` 读会话头走 `readFirstZstdLine(path)`，不经过 `open`
+- 上锁/解锁自己读文件用 `readFileSync`，也不经过 `open`
+
+### 上锁后数据在哪里
+
+| 位置 | 上锁后的状态 | 靠什么保证 |
+|---|---|---|
+| 磁盘文件 | `WALLBK` 密文 | `disk.lock()` 加密后原子替换 |
+| `ctx.agents` | 已卸载 | `detachEntered(entry)` |
+| `ctx.sessions` | 已卸载 | `detachEntered(entry)` |
+| `sessionQuery` 准备缓存 | 已删除 | `cache.delete(id)` |
+| 派生钥匙缓存 | 已清零并删除 | `zeroKey()` + `forgetDiskKey()` |
+| 授权表里的钥匙 | **`fill(0)` 清零** | `Grants.revoke()` |
+| 浏览器内存 / DOM | 整页重载后清空 | `window.location.reload()` |
+
+**做不到彻底清零的三处**（诚实登记）：
+
+- **明文口令是 JS 字符串**，没有 `fill(0)` 这种东西，只能等 GC
+- **V8 可能已经复制过 Buffer**（GC 搬运、`slice` 都复制），清的是手上那份
+- **进程被强杀**（`SIGKILL` / 断电）不走任何清理代码
+
+所以密钥在堆里的暴露窗口从「几分钟」压到「几毫秒」，但不是零。
+
 **钩子是最后一道，不是第一道。** DSH 读一条会话时，`sessionQuery.observeSession()` 按这个顺序找：
 
 ```js

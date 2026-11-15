@@ -63,7 +63,7 @@ import { clearKey as backendClearKey, keyIds as backendKeyIds, patchBackend, set
 import { SCRYPT, scryptKeyOptions } from './lib/scrypt.mjs'
 
 /** 插件版本（客户端设置区会显示）。 */
-const VERSION = '2.0.0'
+const VERSION = '2.1.0'
 
 const MAGIC = Buffer.from([0x57, 0x41, 0x4c, 0x4c, 0x42, 0x4b, 0x01, 0x00]) // "WALLBK\1\0"
 const VERSION_BYTE = 1

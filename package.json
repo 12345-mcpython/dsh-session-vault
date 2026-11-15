@@ -1,6 +1,6 @@
 {
   "name": "@local/dsh-session-vault",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "license": "GPL-3.0-or-later",
   "description": "给 DSH 的会话上锁：界面锁只挡 UI 层，磁盘锁把日志换成 WALLBK 密文；每条会话独立口令，口令只存校验值不存密钥",
   "keywords": [
