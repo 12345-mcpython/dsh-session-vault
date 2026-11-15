@@ -504,7 +504,7 @@ function stamp() {
 
 // 用 ctx.tools / ctx.connection 必须声明 inject，否则激活时报
 // `cannot get property "tools" without inject`。
-export const inject = ['tools', 'connection', 'sessionPersistence']
+export const inject = ['tools', 'connection', 'sessionPersistence', 'agents']
 
 export function apply(ctx, config) {
   const dest = config?.dest || 'D:\\backup\\chat'
@@ -624,11 +624,41 @@ export function apply(ctx, config) {
   /** 把「到底装上了什么」写成文件，Desktop 的 console 看不到时靠它排查。 */
   const writeDiagnostics = (extra) => {
     const snapshot = getState()
+    // 探测 AgentRegistry：宿主内存里有哪些会话、能不能卸掉。
+    // 「上锁后刷新还能在 DevTools 看到内容」的根因是 Host 把会话留在内存，
+    // 客户端重新请求时直接从内存返回，根本没碰磁盘。这里把可用的卸载入口记下来。
+    let agentsProbe = null
+    try {
+      const a = ctx.get('agents') ?? null
+      if (a) {
+        const names = new Set()
+        for (const k of Object.getOwnPropertyNames(a)) names.add(k)
+        for (let p = Object.getPrototypeOf(a); p && p !== Object.prototype; p = Object.getPrototypeOf(p)) {
+          for (const k of Object.getOwnPropertyNames(p)) names.add(k)
+        }
+        agentsProbe = {
+          present: true,
+          store: a.store instanceof Map ? a.store.size : typeof a.store,
+          ids: typeof a.list === 'function' ? a.list().map((x) => String(x?.id ?? x?.sessionId ?? '?')).slice(0, 20) : [],
+          detachEntered: typeof a.detachEntered,
+          detach: typeof a.detach,
+          unload: typeof a.unload,
+          evict: typeof a.evict,
+          remove: typeof a.remove,
+          dispose: typeof a.dispose,
+          members: [...names].sort().slice(0, 60),
+        }
+      }
+    } catch (e) {
+      agentsProbe = { present: false, error: String(e?.message ?? e) }
+    }
+
     const diag = {
       at: new Date().toISOString(),
       version: VERSION,
       backend: backendInfo,
       disk: { available: disk.available, sweptTempFiles: sweptTemps, ...extra },
+      agents: agentsProbe,
       sessionsRoot: sessionsRoot(),
       policy: snapshot.policy,
       locks: Object.entries(snapshot.locks).map(([id, row]) => ({
@@ -702,6 +732,10 @@ export function apply(ctx, config) {
     log,
     version: VERSION,
     onChanged: () => writeDiagnostics({}),
+    // 诊断用：拿 AgentRegistry 看宿主内存里还有哪些会话、能不能卸掉。
+    getAgents: () => {
+      try { return ctx.get('agents') ?? null } catch { return null }
+    },
   })
 
   const registerRoutes = () => {
