@@ -803,7 +803,14 @@ window.__ModuleLoader__.load({
             h('button', {
               'data-dsv-btn': '',
               disabled: busy === 'relock',
-              onClick: () => run('relock', () => api('relock', {}), '已撤销全部临时解锁。'),
+              onClick: () => run('relock', async () => {
+                const r = await api('relock', {})
+                // 全部收回之后也要整页重载：后端把这些会话从 Host 内存卸掉了，
+                // 但浏览器里的副本还在，不重载 DevTools 照样能看到。
+                rememberToastAcrossReload('已撤销全部临时解锁，正在重新加载…')
+                setTimeout(() => { try { window.location.reload() } catch { /* ignore */ } }, 500)
+                return r
+              }, '已撤销全部临时解锁。'),
             }, '立即重新上锁'),
             h('button', {
               'data-dsv-btn': '', 'data-danger': '',
@@ -961,7 +968,15 @@ window.__ModuleLoader__.load({
           try {
             await api('relock', { sessionId })
             await store.refresh({ force: true })
-            store.showToast('已重新上锁 · 需要口令才能查看')
+            // 收回授权也要整页重载。
+            //
+            // 后端已经把这条会话从 Host 内存里卸掉了，但浏览器这份还在 ——
+            // 不重载的话 DevTools 里照样能看到全文。reload 之后客户端重新请求，
+            // Host 内存里没有、磁盘上锁着，就真的拿不到数据了。
+            const toastText = '已重新上锁 · 需要口令才能查看'
+            rememberToastAcrossReload(toastText)
+            store.showToast(toastText)
+            setTimeout(() => { try { window.location.reload() } catch { /* ignore */ } }, 400)
           } catch (error) {
             console.warn('[session-vault] 重新上锁失败：', error)
           } finally {
