@@ -265,9 +265,8 @@ window.__ModuleLoader__.load({
        面 = bg-layer-1/2/3 + border-l2。
        不写死 #fff —— --dsw-alias-brand-primary 在暗色主题里是近白色，写死就是白底白字。 */
     const CSS = `
-[data-dsv-locked="1"] [data-conversation-content]{pointer-events:none;user-select:none;}
-[data-dsv-veil]{position:fixed;inset:0;z-index:40;pointer-events:none;
-  background:var(--dsw-alias-bg-base,#151517);}
+[data-dsv-locked="1"] [data-conversation-content]{visibility:hidden !important;}
+[data-dsv-veil]{position:fixed;inset:0;z-index:40;pointer-events:none;background:transparent;}
 [data-dsv-card]{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:41;
   width:min(392px,calc(100vw - 48px));box-sizing:border-box;padding:20px 20px 16px;border-radius:16px;
   display:flex;flex-direction:column;gap:12px;pointer-events:auto;
