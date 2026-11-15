@@ -321,14 +321,14 @@ window.__ModuleLoader__.load({
 
 /* 解锁成功等一次性提示：右上角浮一条，3 秒后由 store 撤掉。
    配色严格用主题里成对的主按钮 token，不写死白/黑。 */
-[data-dsv-toast]{position:fixed;top:16px;right:16px;z-index:60;display:flex;align-items:center;gap:8px;
+[data-dsv-toast]{position:fixed;bottom:20px;right:20px;z-index:60;display:flex;align-items:center;gap:8px;
   box-sizing:border-box;max-width:min(360px,calc(100vw - 32px));padding:9px 13px;border-radius:10px;
   font-size:12.5px;line-height:18px;font-weight:500;pointer-events:none;
   background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground);
   box-shadow:0 10px 30px rgba(0,0,0,.28);animation:dsv-toast-in .18s ease-out both;}
 [data-dsv-toast] [data-dsv-toast-icon]{display:inline-flex;align-items:center;justify-content:center;flex:none;}
 [data-dsv-toast] [data-dsv-toast-text]{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-@keyframes dsv-toast-in{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:none;}}
+@keyframes dsv-toast-in{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 @media (prefers-reduced-motion:reduce){[data-dsv-toast]{animation:none;}}
 `
 
