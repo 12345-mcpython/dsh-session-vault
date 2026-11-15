@@ -849,12 +849,20 @@ window.__ModuleLoader__.load({
       useEffect(() => {
         if (typeof document === 'undefined') return undefined
         const root = document.documentElement
+        // 调试开关：打开时**不**打这个属性，于是正文不被 CSS 隐藏。
+        // 只影响这一条 CSS，加密、卸载、口令校验都不变。
+        if (value.policy && value.policy.debugShowLocked === true) {
+          root.setAttribute('data-dsv-debug-show', '1')
+          root.removeAttribute('data-dsv-locked')
+          return () => { root.removeAttribute('data-dsv-debug-show') }
+        }
+        root.removeAttribute('data-dsv-debug-show')
         if (locked) root.setAttribute('data-dsv-locked', '1')
         else root.removeAttribute('data-dsv-locked')
         return () => {
           if (!isSessionLocked(store.getSnapshot(), sessionId)) root.removeAttribute('data-dsv-locked')
         }
-      }, [locked, sessionId])
+      }, [locked, sessionId, value.policy && value.policy.debugShowLocked])
 
       if (!locked) return null
 
